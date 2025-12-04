@@ -1,65 +1,153 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
+import { useAddress, usePackage, useShipping } from "@/app/contexts";
+
+import AddressForm from "@/components/address-form/address-form";
+import PackageForm from "@/components/package-form/package-form";
+import GenerateLabelForm from "@/components/generate-label-form/generate-label-form";
+
+import Button from "@/components/button/button";
+import Stepper from "@/components/stepper/stepper";
+
+const STEPS = [
+  {
+    title: "Address Information",
+    description: "Enter the address information for the sender and recipient.",
+  },
+  {
+    title: "Package Details",
+    description: "Enter the package details for the shipment.",
+  },
+  {
+    title: "Download Label",
+    description: "Download the shipping label",
+  },
+];
 
 export default function Home() {
+  const { fromAddress, toAddress, setFromAddress, setToAddress } = useAddress();
+  const { packageData, setPackageData } = usePackage();
+  const { shipmentId, setShipmentId } = useShipping();
+
+  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [stepValidations, setStepValidations] = useState<{
+    [key: number]: boolean;
+  }>({
+    1: false,
+    2: false,
+    3: false,
+  });
+
+  // Validate current step based on context data
+  useEffect(() => {
+    if (currentStep === 1) {
+      const isValid = fromAddress !== null && toAddress !== null;
+      setStepValidations((prev) => ({ ...prev, 1: isValid }));
+    } else if (currentStep === 2) {
+      const isValid =
+        packageData.weight !== null &&
+        packageData.length !== null &&
+        packageData.width !== null &&
+        packageData.height !== null;
+      setStepValidations((prev) => ({ ...prev, 2: isValid }));
+    }
+  }, [currentStep, fromAddress, toAddress, packageData]);
+
+  const handleStepChange = (step: number) => {
+    if (step === currentStep) return;
+    setCurrentStep(step);
+  };
+
+  const handleGenerateNewLabel = () => {
+    setCurrentStep(1);
+    setShipmentId(null);
+    setFromAddress(null);
+    setToAddress(null);
+    setPackageData({
+      weight: null,
+      length: null,
+      width: null,
+      height: null,
+    });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col items-center justify-center w-full gap-10 mx-auto min-h-screen">
+      <div className="flex flex-col gap-1 w-full">
+        <h1 className="text-3xl font-bold">USPS Shipping Label</h1>
+        <p className="text-base text-gray-400">
+          Use the form below to generate a USPS shipping label for your
+          packages.
+        </p>
+      </div>
+
+      <div className="flex flex-col items-center justify-center gap-14 border-2 border-gray-600 rounded-2xl w-full overflow-hidden min-h-[500px]">
+        <Stepper steps={STEPS} currentStep={currentStep} />
+
+        <div className="flex flex-col items-center justify-center gap-10 w-full lg:flex-row lg:gap-10 lg:max-w-2/3 max-w-full flex-1">
+          {currentStep === 1 && (
+            <div className="flex flex-col items-center justify-center gap-8 w-full p-4">
+              <p className="text-lg">{STEPS[currentStep - 1].description}</p>
+
+              <div className="flex flex-col lg:flex-row items-center justify-center lg:gap-10 w-full gap-14">
+                <AddressForm type="from" />
+                <AddressForm type="to" />
+              </div>
+            </div>
+          )}
+
+          {currentStep === 2 && (
+            <div className="flex flex-col items-center justify-center gap-8 w-full p-4">
+              <p className="text-lg">{STEPS[currentStep - 1].description}</p>
+              <PackageForm />
+            </div>
+          )}
+
+          {currentStep === 3 && <GenerateLabelForm />}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="flex flex-row items-center justify-between lg:gap-10 gap-2 w-full bg-gray-500/30 p-4">
+          {currentStep > 1 ? (
+            <Button
+              type="button"
+              onClick={() => handleStepChange(currentStep - 1)}
+              disabled={currentStep === 1}
+              className="w-fit! px-4"
+            >
+              <span className="flex items-center justify-start gap-2">
+                <ArrowLeftIcon className="w-4 h-4" /> Back
+              </span>
+            </Button>
+          ) : (
+            <div className="w-[200px]" />
+          )}
+
+          {currentStep < STEPS.length ? (
+            <Button
+              type="button"
+              onClick={() => handleStepChange(currentStep + 1)}
+              disabled={
+                currentStep === STEPS.length || !stepValidations[currentStep]
+              }
+              className="w-fit! px-4"
+            >
+              <span className="flex items-center justify-end gap-2">
+                Continue <ArrowRightIcon className="w-4 h-4 ml-2" />
+              </span>
+            </Button>
+          ) : shipmentId ? (
+            <Button
+              type="button"
+              onClick={handleGenerateNewLabel}
+              className="w-[200px]!"
+            >
+              Generate New Label
+            </Button>
+          ) : null}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
