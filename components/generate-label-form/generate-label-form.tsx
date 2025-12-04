@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DownloadIcon } from "lucide-react";
 
 import { useAddress, usePackage, useShipping } from "@/app/contexts";
+import { shippingService } from "@/lib/services";
 
 import Button from "@/components/button/button";
 
@@ -20,19 +21,22 @@ export default function GenerateLabelForm() {
     setError(null);
 
     try {
-      const shipmentResponse = await fetch("/api/easypost/shipments/create", {
-        method: "POST",
-        body: JSON.stringify({ fromAddress, toAddress, packageData }),
+      const response = await shippingService.createShipment({
+        fromAddress: fromAddress!,
+        toAddress: toAddress!,
+        packageData: {
+          weight: packageData.weight!,
+          length: packageData.length!,
+          width: packageData.width!,
+          height: packageData.height!,
+        },
       });
 
-      const shipmentData = await shipmentResponse.json();
-
-      if (shipmentResponse.ok) {
-        const shipmentId = shipmentData.id;
-        setShipmentId(shipmentId);
+      if (response.data?.id) {
+        setShipmentId(response.data.id);
       } else {
         setShipmentId(null);
-        setError(shipmentData.error || "Failed to create shipment");
+        setError(response.error || "Failed to create shipment");
       }
     } catch (error) {
       setShipmentId(null);
@@ -49,18 +53,13 @@ export default function GenerateLabelForm() {
     setError(null);
 
     try {
-      const labelResponse = await fetch("/api/easypost/shipments/label", {
-        method: "POST",
-        body: JSON.stringify({ shipmentId }),
-      });
+      const response = await shippingService.getLabel({ shipmentId });
 
-      if (labelResponse.ok) {
-        const { labelUrl } = await labelResponse.json();
-        window.open(labelUrl, "_blank");
+      if (response.data?.labelUrl) {
+        window.open(response.data.labelUrl, "_blank");
       } else {
         setShipmentId(null);
-        const errorData = await labelResponse.json();
-        setError(errorData.error || "Failed to download label");
+        setError(response.error || "Failed to download label");
       }
     } catch (error) {
       setError("An unexpected error occurred");

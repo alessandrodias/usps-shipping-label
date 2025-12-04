@@ -9,6 +9,7 @@ import { useAddress } from "@/app/contexts";
 import { schema, defaultValues } from "./address-form.schema";
 
 import { US_STATES } from "@/utils/us_states";
+import { addressService } from "@/lib/services";
 import Button from "@/components/button/button";
 import ValidationMessage from "@/components/validation-message/validation-message";
 import StatusTag from "@/components/status-tag/status-tag";
@@ -47,24 +48,19 @@ export default function AddressForm({ type }: AddressFormProps) {
     setStatus("validating");
 
     try {
-      const response = await fetch(`/api/easypost/addresses/verify`, {
-        method: "POST",
-        body: JSON.stringify({ address: data }),
+      const response = await addressService.verifyAddress({
+        address: data,
       });
 
-      if (response.ok) {
-        const { valid } = await response.json();
-
-        if (valid === true) {
-          if (type === "from") {
-            setFromAddress(data);
-          } else {
-            setToAddress(data);
-          }
-
-          setStatus("valid");
-          return;
+      if (response.data?.valid === true) {
+        if (type === "from") {
+          setFromAddress(data);
+        } else {
+          setToAddress(data);
         }
+
+        setStatus("valid");
+        return;
       }
 
       setStatus("invalid");
