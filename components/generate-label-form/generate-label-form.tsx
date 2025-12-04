@@ -53,17 +53,58 @@ export default function GenerateLabelForm() {
     setError(null);
 
     try {
-      const response = await shippingService.getLabel({ shipmentId });
+      // 1. Get the shipment to check if it already has postage
+      const shipmentResponse = await shippingService.getShipment({
+        shipmentId,
+      });
 
-      if (response.data?.labelUrl) {
-        window.open(response.data.labelUrl, "_blank");
+      if (!shipmentResponse.data) {
+        setError(shipmentResponse.error || "Failed to get shipment");
+        return;
+      }
+
+      // 2. If the shipment already has postage, use the label URL directly
+      if (shipmentResponse.data.postage_label?.label_url) {
+        window.open(shipmentResponse.data.postage_label.label_url, "_blank");
+        return;
+      }
+
+      // 3. If the shipment doesn't have postage, buy using the first available rate
+      if (
+        !shipmentResponse.data.rates ||
+        shipmentResponse.data.rates.length === 0
+      ) {
+        setError("No rates available for this shipment");
+        return;
+      }
+
+      const selectedRate = shipmentResponse.data.rates[0];
+      const buyResponse = await shippingService.buyPostage({
+        shipmentId,
+        rateId: selectedRate.id,
+      });
+
+      if (!buyResponse.data) {
+        setError(buyResponse.error || "Failed to buy postage");
+        return;
+      }
+
+      // 4. If the buy returned the label URL directly, use it
+      if (buyResponse.data.postage_label?.label_url) {
+        window.open(buyResponse.data.postage_label.label_url, "_blank");
+        return;
+      }
+
+      // 5. Otherwise, get the label separately
+      const labelResponse = await shippingService.getLabel({ shipmentId });
+
+      if (labelResponse.data?.labelUrl) {
+        window.open(labelResponse.data.labelUrl, "_blank");
       } else {
-        setShipmentId(null);
-        setError(response.error || "Failed to download label");
+        setError(labelResponse.error || "Failed to download label");
       }
     } catch (error) {
       setError("An unexpected error occurred");
-      setShipmentId(null);
       console.error(error);
     } finally {
       setIsLoading(false);

@@ -6,6 +6,10 @@ import type {
   CreateShipmentResponse,
   GetLabelRequest,
   GetLabelResponse,
+  GetShipmentRequest,
+  GetShipmentResponse,
+  BuyPostageRequest,
+  BuyPostageResponse,
   ApiResponse,
 } from "./types";
 
@@ -27,7 +31,31 @@ class ShippingService {
   }
 
   /**
-   * Get a label for a shipment
+   * Get a shipment
+   */
+  async getShipment(
+    request: GetShipmentRequest
+  ): Promise<ApiResponse<GetShipmentResponse>> {
+    return apiClient.post<GetShipmentResponse>(
+      "/api/easypost/shipments/get",
+      request
+    );
+  }
+
+  /**
+   * Buy postage for a shipment
+   */
+  async buyPostage(
+    request: BuyPostageRequest
+  ): Promise<ApiResponse<BuyPostageResponse>> {
+    return apiClient.post<BuyPostageResponse>(
+      "/api/easypost/shipments/buy",
+      request
+    );
+  }
+
+  /**
+   * Get a label for a shipment (requires postage to be purchased first)
    */
   async getLabel(
     request: GetLabelRequest

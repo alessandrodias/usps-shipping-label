@@ -12,12 +12,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const params = new URLSearchParams({
-      file_format: "ZPL",
-    });
-
     const response = await fetch(
-      `https://api.easypost.com/v2/shipments/${shipmentId}/label?${params.toString()}`,
+      `https://api.easypost.com/v2/shipments/${shipmentId}`,
       {
         method: "GET",
         headers: {
@@ -30,24 +26,23 @@ export async function POST(request: Request) {
     const responseData = await response.json();
 
     if (response.ok) {
-      const labelUrl = responseData.postage_label?.label_url;
-      if (!labelUrl) {
-        return new Response(
-          JSON.stringify({ error: "Label URL not found in response" }),
-          {
-            status: 400,
-          }
-        );
-      }
+      const { id, postage_label, rates } = responseData;
 
-      return new Response(JSON.stringify({ labelUrl }), {
-        status: 200,
-      });
+      return new Response(
+        JSON.stringify({
+          id,
+          postage_label: postage_label || null,
+          rates: rates || [],
+        }),
+        {
+          status: 200,
+        }
+      );
     }
 
     return new Response(
       JSON.stringify({
-        error: responseData.error?.message || "Failed to get label URL",
+        error: responseData.error?.message || "Failed to get shipment",
       }),
       {
         status: response.status,
@@ -58,7 +53,7 @@ export async function POST(request: Request) {
     return new Response(
       JSON.stringify({
         error:
-          error instanceof Error ? error.message : "Failed to get label URL",
+          error instanceof Error ? error.message : "Failed to get shipment",
       }),
       {
         status: 500,
